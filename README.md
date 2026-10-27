@@ -47,19 +47,32 @@ Use as migrações em ordem porque elas ampliam os campos e tabelas existentes s
 ## Funcionalidades concluídas
 - Autenticação com sessão segura e controle de acesso por perfil.
 - Cadastro e edição de produtos com estoque mínimo e alertas.
+- Normalização e validação de código de barras para localizar produtos no PDV mesmo com variações de formatação.
 - Cadastro de produtos em modal ao clicar em `Produtos`, sem sair da tela atual.
 - Entrada e saída de mercadoria com histórico de movimentações.
-- PDV com leitor de código de barras, pagamentos divididos, desconto e validações.
+- PDV com leitor de código de barras, pagamentos divididos, desconto, cálculo automático de troco e validações.
+- Pagamento em Pix com geração de QR Code para cobrança a partir da chave configurada no sistema.
 - Caixa com abertura, suprimento, sangria e fechamento.
 - Módulo financeiro com despesas/receitas, categorias, status e filtros.
 - Dashboard gerencial e relatórios em CSV.
 - Auditoria de eventos relevantes do sistema.
 
-## Fluxo de cadastro de produtos
-- O menu principal e os acessos rápidos direcionam para `products.php?open=1`.
-- Isso abre um modal de cadastro/edição de produto em overlay.
-- O formulário permite informar código de barras, nome, categoria, custo, venda, estoque e validade.
-- Após salvar, o sistema retorna para a listagem e mantém o fluxo de gestão sem navegação extra.
+## Configuração do Pix
+- Defina a chave Pix e o nome do recebedor em `config.php`:
+  - `PIX_KEY`
+  - `PIX_NAME`
+- Quando a venda for paga com Pix, o sistema gera o QR Code automaticamente na tela de fechamento da venda.
+- O QR Code pode ser usado em apps de pagamento para finalizar a cobrança com rapidez.
+
+## Fluxo de venda com Pagamento
+1. Login como administrador ou vendedor.
+2. Abra o módulo `PDV`.
+3. Escaneie o código de barras ou digite o código.
+4. Verifique o total e o desconto.
+5. Informe o valor recebido por cada forma de pagamento.
+6. O sistema mostra o troco automaticamente.
+7. Se o pagamento for Pix, o QR Code aparece ao final da venda.
+8. Finalize a venda e confirme o registro no caixa.
 
 ## Pendências e limitações
 - O sistema é local e não substitui contabilidade fiscal/tributária oficial.

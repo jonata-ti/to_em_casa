@@ -63,6 +63,7 @@ Arquivos principais:
 
 ### 3. Produtos e estoque
 - Produtos têm código de barras, nome, categoria, custo, venda, estoque mínimo e validade.
+- O código de barras é normalizado antes de salvar e consultar, evitando falhas por espaço, ponto ou hífen.
 - O estoque pode ser aumentado ou reduzido.
 - Movimentações são registradas com antes/depois e responsável.
 - Estoque insuficiente bloqueia venda.
@@ -73,6 +74,8 @@ Arquivos principais:
 - A venda valida total, desconto, pagamentos e estoque.
 - A transação é feita em banco para evitar inconsistência.
 - O pagamento pode ser dividido entre formas diferentes.
+- O sistema calcula automaticamente o troco com base no valor recebido.
+- Se o pagamento for Pix, o sistema gera o QR Code da cobrança ao finalizar a venda.
 
 ### 5. Caixa
 - O caixa pode ser aberto por usuário.
@@ -95,53 +98,22 @@ Arquivos principais:
 - Guarda usuário responsável, operação, entidade e detalhe da ação.
 - Não armazena senha em claro ou dados sensíveis extras.
 
-## Perfis e acessos
-### Administrador
-Pode acessar:
-- produtos
-- estoque
-- entrada e saída de itens
-- histórico
-- PDV
-- caixa
-- financeiro
-- relatórios
-- auditoria
-- painel de usuários
+## Configuração do Pix
+- Ajuste a chave Pix e o nome do recebedor em `config.php`.
+- Exemplo:
+  - `PIX_KEY` = chave Pix da conta
+  - `PIX_NAME` = nome que aparece no QR Code
+- Quando o cliente paga com Pix, o QR Code é exibido automaticamente na tela após a venda ser finalizada.
 
-### Vendedor
-Pode acessar:
-- PDV
-- caixa relacionado à operação de venda
-- somente módulos diretamente usados no atendimento
-
-Não pode acessar:
-- relatórios administrativos
-- custos e lucros restritos
-- auditoria
-- painel de usuários
-- módulos financeiros sensíveis
-
-## Menus do sistema
-A navegação principal foi padronizada com estrutura de menu em todos os módulos. Os itens principais incluem:
-- Início
-- Produtos
-- PDV
-- Caixa
-- Financeiro
-- Relatórios
-- Auditoria
-- Usuários (somente admin)
-- Usuário e Sair
-
-## Migrações SQL e ordem de execução
-Na pasta `migrations/`, a ordem correta é:
-1. `001_create_users.sql`
-2. `002_stock_control.sql`
-3. `003_cash_and_pdv.sql`
-4. `004_cash_views.sql`
-5. `005_financial_and_audit.sql`
-6. `006_fix_module_tables.sql`
+## Fluxo de venda recomendado
+1. Login como administrador ou vendedor.
+2. Abra o módulo `PDV`.
+3. Escaneie o código de barras do produto ou digite o código.
+4. Confirme o total e aplique desconto, se necessário.
+5. Informe o valor recebido em cada forma de pagamento.
+6. Verifique o troco calculado automaticamente.
+7. Se a forma for Pix, o QR Code será gerado na tela.
+8. Finalize a venda e consulte o histórico de caixa.
 
 ## Atualizações registradas
 - Implementado módulo financeiro.
@@ -151,6 +123,9 @@ Na pasta `migrations/`, a ordem correta é:
 - Padronização dos menus de navegação.
 - Implementado painel administrativo de usuários com criação, edição e ativação.
 - Ajustado cadastro de produtos em modal para agilizar a rotina de atendimento.
+- Normalização do código de barras para evitar falhas na busca do PDV.
+- Cálculo automático de troco em vendas.
+- Geração de QR Code Pix na finalização da venda.
 - Atualização desta documentação.
 
 ## Observações finais
