@@ -34,6 +34,7 @@ Na pasta `migrations/`, a ordem correta é:
 3. `003_cash_and_pdv.sql`
 4. `004_cash_views.sql`
 5. `005_financial_and_audit.sql`
+6. `006_fix_module_tables.sql`
 
 Use as migrações em ordem porque elas ampliam os campos e tabelas existentes sem apagar registros históricos.
 
@@ -46,12 +47,19 @@ Use as migrações em ordem porque elas ampliam os campos e tabelas existentes s
 ## Funcionalidades concluídas
 - Autenticação com sessão segura e controle de acesso por perfil.
 - Cadastro e edição de produtos com estoque mínimo e alertas.
+- Cadastro de produtos em modal ao clicar em `Produtos`, sem sair da tela atual.
 - Entrada e saída de mercadoria com histórico de movimentações.
 - PDV com leitor de código de barras, pagamentos divididos, desconto e validações.
 - Caixa com abertura, suprimento, sangria e fechamento.
 - Módulo financeiro com despesas/receitas, categorias, status e filtros.
 - Dashboard gerencial e relatórios em CSV.
 - Auditoria de eventos relevantes do sistema.
+
+## Fluxo de cadastro de produtos
+- O menu principal e os acessos rápidos direcionam para `products.php?open=1`.
+- Isso abre um modal de cadastro/edição de produto em overlay.
+- O formulário permite informar código de barras, nome, categoria, custo, venda, estoque e validade.
+- Após salvar, o sistema retorna para a listagem e mantém o fluxo de gestão sem navegação extra.
 
 ## Pendências e limitações
 - O sistema é local e não substitui contabilidade fiscal/tributária oficial.
@@ -63,7 +71,7 @@ Use as migrações em ordem porque elas ampliam os campos e tabelas existentes s
 ## Teste integrado recomendado
 1. Login como administrador.
 2. Cadastrar vendedor.
-3. Cadastrar produto com código de barras.
+3. Cadastrar produto com código de barras via modal.
 4. Registrar entrada de mercadoria.
 5. Abrir caixa.
 6. Realizar venda com leitor de código de barras.
@@ -91,5 +99,7 @@ Use as migrações em ordem porque elas ampliam os campos e tabelas existentes s
 - relatórios por período e exportação CSV;
 - auditoria de ações relevantes;
 - revisão de segurança e consistência;
-- ajustes de documentação e compatibilidade.
+- ajustes de documentação e compatibilidade;
+- melhoria do cadastro de produtos com modal de criação/edição.
+
 # to_em_casa
