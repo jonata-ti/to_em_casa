@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $barcode = trim((string)($_POST['barcode'] ?? ''));
+    $barcode = normalizeBarcode((string)($_POST['barcode'] ?? ''));
     $name = trim((string)($_POST['name'] ?? ''));
     $categoryId = isset($_POST['category_id']) && $_POST['category_id'] !== '' ? (int)$_POST['category_id'] : null;
     $brand = trim((string)($_POST['brand'] ?? ''));

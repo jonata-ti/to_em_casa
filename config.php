@@ -95,4 +95,14 @@ function ensureRequiredSchema(PDO $pdo): void
     }
 }
 
+function normalizeBarcode(string $value): string
+{
+    $value = trim((string)$value);
+    $value = preg_replace('/[\x00-\x1F\x7F\s\-\.]+/u', '', $value);
+    return strtoupper($value);
+}
+
+define('PIX_KEY', getenv('PIX_KEY') ?: 'SEU_PIX_KEY_AQUI');
+define('PIX_NAME', getenv('PIX_NAME') ?: 'TÔ EM CASA');
+
 ensureRequiredSchema($pdo);
