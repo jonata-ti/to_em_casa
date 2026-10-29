@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: cash_register.php?error=ja_aberto');
             exit;
         }
-        $initial = (float)str_replace(',', '.', (string)($_POST['opened_amount'] ?? '0'));
+        $initial = (int)round((float)str_replace(',', '.', (string)($_POST['opened_amount'] ?? '0')));
         if ($initial < 0) {
             header('Location: cash_register.php?error=valor_invalido');
             exit;
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: cash_register.php?error=caixa_fechado');
             exit;
         }
-        $amount = (float)str_replace(',', '.', (string)($_POST['amount'] ?? '0'));
+        $amount = (int)round((float)str_replace(',', '.', (string)($_POST['amount'] ?? '0')));
         $reason = trim((string)($_POST['reason'] ?? ''));
         if ($amount <= 0 || $reason === '') {
             header('Location: cash_register.php?error=suprimento_invalido');
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: cash_register.php?error=caixa_fechado');
             exit;
         }
-        $amount = (float)str_replace(',', '.', (string)($_POST['amount'] ?? '0'));
+        $amount = (int)round((float)str_replace(',', '.', (string)($_POST['amount'] ?? '0')));
         $reason = trim((string)($_POST['reason'] ?? ''));
         if ($amount <= 0 || $reason === '') {
             header('Location: cash_register.php?error=sangria_invalida');
@@ -81,10 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: cash_register.php?error=caixa_fechado');
             exit;
         }
-        $counted = (float)str_replace(',', '.', (string)($_POST['counted_amount'] ?? '0'));
+        $counted = (int)round((float)str_replace(',', '.', (string)($_POST['counted_amount'] ?? '0')));
         $notes = trim((string)($_POST['notes'] ?? ''));
-        $expected = (float)$openCash['expected_amount'];
-        $difference = round($counted - $expected, 2);
+        $expected = (int)$openCash['expected_amount'];
+        $difference = $counted - $expected;
 
         $upd = $pdo->prepare('UPDATE cash_registers SET status = ?, counted_amount = ?, difference_amount = ?, notes = ?, closed_at = NOW() WHERE id = ?');
         $upd->execute(['closed', $counted, $difference, $notes !== '' ? $notes : 'Fechamento de caixa', (int)$openCash['id']]);
@@ -137,7 +137,7 @@ if (empty($_SESSION['csrf_token'])) {
             <form method="post" class="form-grid">
                 <input type="hidden" name="action" value="supply">
                 <input type="hidden" name="csrf" value="<?= h($_SESSION['csrf_token']) ?>">
-                <label>Suprimento<input type="number" name="amount" min="0.01" step="0.01" required></label>
+                <label>Suprimento<input type="number" name="amount" min="0" step="1" required></label>
                 <label>Motivo<input type="text" name="reason" maxlength="160" required></label>
                 <div class="full"><button type="submit" class="button">Registrar suprimento</button></div>
             </form>
@@ -145,7 +145,7 @@ if (empty($_SESSION['csrf_token'])) {
             <form method="post" class="form-grid">
                 <input type="hidden" name="action" value="sangria">
                 <input type="hidden" name="csrf" value="<?= h($_SESSION['csrf_token']) ?>">
-                <label>Sangria<input type="number" name="amount" min="0.01" step="0.01" required></label>
+                <label>Sangria<input type="number" name="amount" min="0" step="1" required></label>
                 <label>Motivo<input type="text" name="reason" maxlength="160" required></label>
                 <div class="full"><button type="submit" class="button secondary">Registrar sangria</button></div>
             </form>
@@ -153,7 +153,7 @@ if (empty($_SESSION['csrf_token'])) {
             <form method="post" class="form-grid">
                 <input type="hidden" name="action" value="close">
                 <input type="hidden" name="csrf" value="<?= h($_SESSION['csrf_token']) ?>">
-                <label>Valor contado<input type="number" name="counted_amount" min="0" step="0.01" required></label>
+                <label>Valor contado<input type="number" name="counted_amount" min="0" step="1" required></label>
                 <label>Observações<input type="text" name="notes" maxlength="255"></label>
                 <div class="full"><button type="submit" class="button danger">Fechar caixa</button></div>
             </form>
@@ -164,7 +164,7 @@ if (empty($_SESSION['csrf_token'])) {
             <form method="post" class="form-grid">
                 <input type="hidden" name="action" value="open">
                 <input type="hidden" name="csrf" value="<?= h($_SESSION['csrf_token']) ?>">
-                <label>Valor inicial (R$)<input type="number" name="opened_amount" min="0" step="0.01" required></label>
+                <label>Valor inicial (R$)<input type="number" name="opened_amount" min="0" step="1" required></label>
                 <div class="full"><button type="submit" class="button">Abrir caixa</button></div>
             </form>
         </section>
