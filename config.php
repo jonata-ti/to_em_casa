@@ -114,7 +114,7 @@ function normalizeBarcode(string $value): string
     return strtoupper($value);
 }
 
-define('PIX_KEY', getenv('PIX_KEY') ?: 'SEU_PIX_KEY_AQUI');
+define('PIX_KEY', getenv('PIX_KEY') ?: '98985346984');
 define('PIX_NAME', getenv('PIX_NAME') ?: 'TÔ EM CASA');
 
 ensureRequiredSchema($pdo);
