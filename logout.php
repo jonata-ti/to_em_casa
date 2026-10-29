@@ -4,8 +4,8 @@ declare(strict_types=1);
 require __DIR__ . '/config.php';
 require __DIR__ . '/auth.php';
 
-session_name('to_em_casa_session');
 if (session_status() === PHP_SESSION_NONE) {
+    session_name('to_em_casa_session');
     session_start();
 }
 
