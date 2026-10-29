@@ -43,8 +43,8 @@ if ($selectedId > 0) {
             'unit' => (string)$product['unit'],
             'cost_price' => number_format((float)$product['cost_price'], 2, '.', ''),
             'sale_price' => number_format((float)$product['sale_price'], 2, '.', ''),
-            'stock_qty' => number_format((float)$product['stock_qty'], 3, '.', ''),
-            'min_stock' => number_format((float)$product['min_stock'], 3, '.', ''),
+            'stock_qty' => number_format((float)$product['stock_qty'], 0, '.', ''),
+            'min_stock' => number_format((float)$product['min_stock'], 0, '.', ''),
             'expires_on' => $product['expires_on'] ? (string)$product['expires_on'] : '',
             'active' => (string)(int)$product['active'],
         ];
@@ -78,8 +78,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $unit = trim((string)($_POST['unit'] ?? 'un'));
     $cost = (float)str_replace(',', '.', (string)($_POST['cost_price'] ?? '0'));
     $sale = (float)str_replace(',', '.', (string)($_POST['sale_price'] ?? '0'));
-    $stock = (float)str_replace(',', '.', (string)($_POST['stock_qty'] ?? '0'));
-    $minStock = (float)str_replace(',', '.', (string)($_POST['min_stock'] ?? '0'));
+    $stock = (int)round((float)str_replace(',', '.', (string)($_POST['stock_qty'] ?? '0')));
+    $minStock = (int)round((float)str_replace(',', '.', (string)($_POST['min_stock'] ?? '0')));
     $expires = trim((string)($_POST['expires_on'] ?? ''));
     $active = isset($_POST['active']) ? (int)$_POST['active'] : 0;
 
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $newProductId = (int)$pdo->lastInsertId();
                 if ($stock > 0) {
                     $move = $pdo->prepare('INSERT INTO stock_movements (product_id, movement_type, quantity, before_qty, after_qty, movement_reason, notes, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())');
-                    $move->execute([(int)$newProductId, 'initial', (float)$stock, 0.0, (float)$stock, 'Cadastro inicial', 'Estoque inicial no cadastro', (int)$user['id']]);
+                    $move->execute([(int)$newProductId, 'initial', (int)$stock, 0, (int)$stock, 'Cadastro inicial', 'Estoque inicial no cadastro', (int)$user['id']]);
                 }
                 logAudit($pdo, 'products', 'products', $newProductId, 'create', 'Produto cadastrado: ' . $name, (int)$user['id']);
                 $saveMessage = 'Produto cadastrado com sucesso.';
@@ -240,8 +240,8 @@ foreach ($products as $p) {
                 </select></label>
                 <label>Custo de compra<span class="muted-small">(R$)</span><input name="cost_price" type="number" min="0" step="0.01" value="<?= h($form['cost_price']) ?>" required></label>
                 <label>Preço de venda<span class="muted-small">(R$)</span><input name="sale_price" type="number" min="0" step="0.01" value="<?= h($form['sale_price']) ?>" required></label>
-                <label>Estoque atual<input name="stock_qty" type="number" min="0" step="0.001" value="<?= h($form['stock_qty']) ?>" required></label>
-                <label>Estoque mínimo<input name="min_stock" type="number" min="0" step="0.001" value="<?= h($form['min_stock']) ?>" required></label>
+                <label>Estoque atual<input name="stock_qty" type="number" min="0" step="1" value="<?= h($form['stock_qty']) ?>" required></label>
+                <label>Estoque mínimo<input name="min_stock" type="number" min="0" step="1" value="<?= h($form['min_stock']) ?>" required></label>
                 <label>Validade (opcional)<input name="expires_on" type="date" value="<?= h($form['expires_on']) ?>"></label>
                 <label>Status<select name="active"><option value="1" <?= $form['active'] === '1' ? 'selected' : '' ?>>Ativo</option><option value="0" <?= $form['active'] === '0' ? 'selected' : '' ?>>Inativo</option></select></label>
                 <div class="full"><button class="button" type="submit"><?= $selectedId > 0 ? 'Salvar alterações' : 'Salvar produto' ?></button><?php if ($selectedId > 0): ?><a class="button secondary" href="products.php">Cancelar edição</a><?php endif; ?></div>

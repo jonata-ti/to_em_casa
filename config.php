@@ -1,12 +1,13 @@
 <?php
 declare(strict_types=1);
 
-$host = '127.0.0.1';
-$db   = 'to_em_casa';
-$user = 'root';
-$pass = ''; // Configure conforme seu MySQL local.
+$host = getenv('DB_HOST') ?: '127.0.0.1';
+$port = getenv('DB_PORT') ?: '3306';
+$db   = getenv('DB_NAME') ?: 'to_em_casa';
+$user = getenv('DB_USER') ?: 'to_em_casa';
+$pass = getenv('DB_PASSWORD') ?: 'm35qu174'; // Configure conforme seu MySQL local.
 
-$dsn = "mysql:host={$host};dbname={$db};charset=utf8mb4";
+$dsn = "mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4";
 $options = [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -47,11 +48,11 @@ function ensureRequiredSchema(PDO $pdo): void
     $createStatements = [
         "CREATE TABLE IF NOT EXISTS users (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, username VARCHAR(64) NOT NULL UNIQUE, name VARCHAR(120) NOT NULL, password_hash VARCHAR(255) NOT NULL, role ENUM('admin','vendedor') NOT NULL DEFAULT 'vendedor', active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB",
         "CREATE TABLE IF NOT EXISTS categories (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, name VARCHAR(80) NOT NULL UNIQUE, active TINYINT(1) NOT NULL DEFAULT 1) ENGINE=InnoDB",
-        "CREATE TABLE IF NOT EXISTS products (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, barcode VARCHAR(64) NOT NULL UNIQUE, name VARCHAR(160) NOT NULL, category_id INT UNSIGNED NULL, brand VARCHAR(100) NULL, unit VARCHAR(20) NOT NULL DEFAULT 'un', cost_price DECIMAL(12,2) NOT NULL DEFAULT 0, sale_price DECIMAL(12,2) NOT NULL DEFAULT 0, stock_qty DECIMAL(12,3) NOT NULL DEFAULT 0, min_stock DECIMAL(12,3) NOT NULL DEFAULT 0, expires_on DATE NULL, active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB",
+        "CREATE TABLE IF NOT EXISTS products (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, barcode VARCHAR(64) NOT NULL UNIQUE, name VARCHAR(160) NOT NULL, category_id INT UNSIGNED NULL, brand VARCHAR(100) NULL, unit VARCHAR(20) NOT NULL DEFAULT 'un', cost_price DECIMAL(12,2) NOT NULL DEFAULT 0, sale_price DECIMAL(12,2) NOT NULL DEFAULT 0, stock_qty INT NOT NULL DEFAULT 0, min_stock INT NOT NULL DEFAULT 0, expires_on DATE NULL, active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB",
         "CREATE TABLE IF NOT EXISTS sales (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, sale_number VARCHAR(32) NULL, total DECIMAL(12,2) NOT NULL, status ENUM('completed','cancelled') NOT NULL DEFAULT 'completed', seller_id BIGINT UNSIGNED NULL, cash_id BIGINT UNSIGNED NULL, discount DECIMAL(12,2) NOT NULL DEFAULT 0, notes VARCHAR(255) NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
-        "CREATE TABLE IF NOT EXISTS sale_items (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, sale_id BIGINT UNSIGNED NOT NULL, product_id BIGINT UNSIGNED NOT NULL, product_name VARCHAR(160) NOT NULL, barcode VARCHAR(64) NOT NULL, quantity DECIMAL(12,3) NOT NULL, unit_price DECIMAL(12,2) NOT NULL, unit_cost DECIMAL(12,2) NOT NULL, line_total DECIMAL(12,2) NOT NULL) ENGINE=InnoDB",
+        "CREATE TABLE IF NOT EXISTS sale_items (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, sale_id BIGINT UNSIGNED NOT NULL, product_id BIGINT UNSIGNED NOT NULL, product_name VARCHAR(160) NOT NULL, barcode VARCHAR(64) NOT NULL, quantity INT NOT NULL, unit_price DECIMAL(12,2) NOT NULL, unit_cost DECIMAL(12,2) NOT NULL, line_total DECIMAL(12,2) NOT NULL) ENGINE=InnoDB",
         "CREATE TABLE IF NOT EXISTS sale_payments (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, sale_id BIGINT UNSIGNED NOT NULL, method ENUM('dinheiro','pix','debito','credito','outro') NOT NULL, amount DECIMAL(12,2) NOT NULL) ENGINE=InnoDB",
-        "CREATE TABLE IF NOT EXISTS stock_movements (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, product_id BIGINT UNSIGNED NOT NULL, movement_type ENUM('initial','sale','adjustment_in','adjustment_out') NOT NULL, quantity DECIMAL(12,3) NOT NULL, before_qty DECIMAL(12,3) NOT NULL DEFAULT 0, after_qty DECIMAL(12,3) NOT NULL DEFAULT 0, reference_id BIGINT UNSIGNED NULL, user_id BIGINT UNSIGNED NULL, notes VARCHAR(255) NULL, supplier VARCHAR(120) NULL, movement_reason VARCHAR(160) NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
+        "CREATE TABLE IF NOT EXISTS stock_movements (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, product_id BIGINT UNSIGNED NOT NULL, movement_type ENUM('initial','sale','adjustment_in','adjustment_out') NOT NULL, quantity INT NOT NULL, before_qty INT NOT NULL DEFAULT 0, after_qty INT NOT NULL DEFAULT 0, reference_id BIGINT UNSIGNED NULL, user_id BIGINT UNSIGNED NULL, notes VARCHAR(255) NULL, supplier VARCHAR(120) NULL, movement_reason VARCHAR(160) NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
         "CREATE TABLE IF NOT EXISTS cash_registers (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, opened_by_user_id BIGINT UNSIGNED NOT NULL, opened_amount DECIMAL(12,2) NOT NULL DEFAULT 0, status ENUM('open','closed') NOT NULL DEFAULT 'open', opened_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, closed_at TIMESTAMP NULL, expected_amount DECIMAL(12,2) NOT NULL DEFAULT 0, counted_amount DECIMAL(12,2) NOT NULL DEFAULT 0, difference_amount DECIMAL(12,2) NOT NULL DEFAULT 0, notes VARCHAR(255) NULL) ENGINE=InnoDB",
         "CREATE TABLE IF NOT EXISTS cash_movements (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, cash_register_id BIGINT UNSIGNED NOT NULL, movement_type ENUM('opening','sale','supply','sangria','cancelled_sale','closing') NOT NULL, related_sale_id BIGINT UNSIGNED NULL, user_id BIGINT UNSIGNED NOT NULL, amount DECIMAL(12,2) NOT NULL DEFAULT 0, reason VARCHAR(160) NOT NULL DEFAULT '', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
         "CREATE TABLE IF NOT EXISTS financial_categories (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, name VARCHAR(120) NOT NULL, type ENUM('income','expense') NOT NULL, active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uniq_financial_category_name (name, type)) ENGINE=InnoDB",
@@ -60,11 +61,22 @@ function ensureRequiredSchema(PDO $pdo): void
         "CREATE TABLE IF NOT EXISTS payment_tickets (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, sale_id BIGINT UNSIGNED NOT NULL, ticket_number VARCHAR(64) NOT NULL, printed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uniq_ticket_number (ticket_number)) ENGINE=InnoDB",
     ];
 
-    foreach ($createStatements as $sql) {
-        try {
-            $pdo->exec($sql);
-        } catch (Throwable $e) {
-            // ignora falhas de criação quando a tabela já existe com estrutura diferente.
+    $integerColumns = [
+        ['products', 'stock_qty', "ALTER TABLE products MODIFY COLUMN stock_qty INT NOT NULL DEFAULT 0"],
+        ['products', 'min_stock', "ALTER TABLE products MODIFY COLUMN min_stock INT NOT NULL DEFAULT 0"],
+        ['sale_items', 'quantity', "ALTER TABLE sale_items MODIFY COLUMN quantity INT NOT NULL"],
+        ['stock_movements', 'quantity', "ALTER TABLE stock_movements MODIFY COLUMN quantity INT NOT NULL"],
+        ['stock_movements', 'before_qty', "ALTER TABLE stock_movements MODIFY COLUMN before_qty INT NOT NULL DEFAULT 0"],
+        ['stock_movements', 'after_qty', "ALTER TABLE stock_movements MODIFY COLUMN after_qty INT NOT NULL DEFAULT 0"],
+    ];
+
+    foreach ($integerColumns as [$table, $column, $sql]) {
+        if (columnExists($pdo, $table, $column)) {
+            try {
+                $pdo->exec($sql);
+            } catch (Throwable $e) {
+                // ignora se a coluna já estiver em formato compatível.
+            }
         }
     }
 
@@ -74,8 +86,8 @@ function ensureRequiredSchema(PDO $pdo): void
         ['sales', 'cash_id', "ALTER TABLE sales ADD COLUMN cash_id BIGINT UNSIGNED NULL AFTER seller_id"],
         ['sales', 'discount', "ALTER TABLE sales ADD COLUMN discount DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER cash_id"],
         ['sales', 'notes', "ALTER TABLE sales ADD COLUMN notes VARCHAR(255) NULL AFTER discount"],
-        ['stock_movements', 'before_qty', "ALTER TABLE stock_movements ADD COLUMN before_qty DECIMAL(12,3) NOT NULL DEFAULT 0 AFTER quantity"],
-        ['stock_movements', 'after_qty', "ALTER TABLE stock_movements ADD COLUMN after_qty DECIMAL(12,3) NOT NULL DEFAULT 0 AFTER before_qty"],
+        ['stock_movements', 'before_qty', "ALTER TABLE stock_movements ADD COLUMN before_qty INT NOT NULL DEFAULT 0 AFTER quantity"],
+        ['stock_movements', 'after_qty', "ALTER TABLE stock_movements ADD COLUMN after_qty INT NOT NULL DEFAULT 0 AFTER before_qty"],
         ['stock_movements', 'user_id', "ALTER TABLE stock_movements ADD COLUMN user_id BIGINT UNSIGNED NULL AFTER reference_id"],
         ['stock_movements', 'supplier', "ALTER TABLE stock_movements ADD COLUMN supplier VARCHAR(120) NULL AFTER notes"],
         ['stock_movements', 'movement_reason', "ALTER TABLE stock_movements ADD COLUMN movement_reason VARCHAR(160) NULL AFTER supplier"],

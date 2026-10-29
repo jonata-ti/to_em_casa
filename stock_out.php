@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fields['notes'] = trim((string)($_POST['notes'] ?? ''));
 
     $productId = (int)$fields['product_id'];
-    $quantity = (float)str_replace(',', '.', $fields['quantity']);
+    $quantity = (int)round((float)str_replace(',', '.', $fields['quantity']));
     $movementDate = $fields['movement_date'];
     $reason = $fields['movement_reason'];
 
@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$product) {
                 throw new RuntimeException('Produto não encontrado ou inativo.');
             }
-            $beforeQty = (float)$product['stock_qty'];
+            $beforeQty = (int)$product['stock_qty'];
             if ($beforeQty < $quantity) {
                 throw new RuntimeException('Quantidade maior que o estoque disponível.');
             }
@@ -138,7 +138,7 @@ $products = $pdo->query('SELECT id, name, barcode, stock_qty FROM products WHERE
             </select>
         </label>
 
-        <label>Quantidade *<input type="number" name="quantity" min="0.001" step="0.001" value="<?= h($fields['quantity']) ?>" required></label>
+        <label>Quantidade *<input type="number" name="quantity" min="1" step="1" value="<?= h($fields['quantity']) ?>" required></label>
         <label>Data *<input type="date" name="movement_date" value="<?= h($fields['movement_date']) ?>" required></label>
         <label>Motivo *
             <select name="movement_reason" required>

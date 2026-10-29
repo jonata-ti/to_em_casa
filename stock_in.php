@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fields['notes'] = trim((string)($_POST['notes'] ?? ''));
 
     $productId = (int)$fields['product_id'];
-    $quantity = (float)str_replace(',', '.', $fields['quantity']);
+    $qty = (int)round((float)str_replace(',', '.', $fields['quantity']));
     $unitCost = (float)str_replace(',', '.', $fields['unit_cost']);
     $movementDate = $fields['movement_date'] !== '' ? $fields['movement_date'] : $defaultDate;
     $reason = $fields['movement_reason'];
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($productId <= 0) {
         $error = 'Selecione um produto para registrar a entrada.';
-    } elseif ($quantity <= 0) {
+    } elseif ($qty <= 0) {
         $error = 'A quantidade recebida deve ser maior que zero.';
     } elseif ($unitCost < 0) {
         $error = 'O custo unitário não pode ser negativo.';
@@ -58,8 +58,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Produto não encontrado ou inativo.');
             }
 
-            $beforeQty = (float)$product['stock_qty'];
-            $afterQty = $beforeQty + $quantity;
+            $beforeQty = (int)$product['stock_qty'];
+            $afterQty = $beforeQty + $qty;
 
             $update = $pdo->prepare('UPDATE products SET stock_qty = ?, cost_price = ? WHERE id = ?');
             $update->execute([$afterQty, $unitCost, $productId]);
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $insert->execute([
                 $productId,
                 'adjustment_in',
-                $quantity,
+                $qty,
                 $beforeQty,
                 $afterQty,
                 $reason,
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'expense',
                     null,
                     $expenseText,
-                    round($quantity * $unitCost, 2),
+                    round($qty * $unitCost, 2),
                     $movementDate,
                     $movementDate,
                     'pending',
@@ -160,7 +160,7 @@ $products = $pdo->query('SELECT id, name, barcode, stock_qty, active FROM produc
             </select>
         </label>
 
-        <label>Quantidade recebida *<input type="number" name="quantity" min="0.001" step="0.001" value="<?= h($fields['quantity']) ?>" required></label>
+        <label>Quantidade recebida *<input type="number" name="quantity" min="1" step="1" value="<?= h($fields['quantity']) ?>" required></label>
         <label>Custo unitário (R$) *<input type="number" name="unit_cost" min="0" step="0.01" value="<?= h($fields['unit_cost']) ?>" required></label>
         <label>Data da entrada *<input type="date" name="movement_date" value="<?= h($fields['movement_date']) ?>" required></label>
         <label>Motivo *
