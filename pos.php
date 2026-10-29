@@ -263,147 +263,312 @@ if (empty($_SESSION['csrf_token'])) {
         <a href="logout.php">Sair</a>
     </nav>
 </header>
-<main>
-    <h1>Frente de caixa</h1>
-    <p class="muted">Clique no campo e leia o código de barras. O leitor deve enviar Enter ao final da leitura.</p>
+<main class="pos-page">
+    <section class="pos-topbar card">
+        <div>
+            <div class="eyebrow">Operação ativa</div>
+            <h1>Frente de Caixa</h1>
+            <p class="muted">Leia o código de barras ou digite o código do produto para iniciar a venda.</p>
+        </div>
+        <div class="pos-status-wrap">
+            <span class="status-pill <?= $cashRegister ? 'success' : 'warning' ?>">
+                <?= $cashRegister ? 'Caixa aberto' : 'Caixa fechado' ?>
+            </span>
+        </div>
+    </section>
+
     <?php if($error): ?><div class="error"><?= h($error) ?></div><?php endif; ?>
     <?php if($success): ?><div class="success"><?= h($success) ?></div><?php endif; ?>
     <?php if($receipt): ?><div class="success">Venda #<?= h((string)$receipt['number']) ?> concluída — total <?= money((float)$receipt['total']) ?>.</div><?php endif; ?>
     <?php if($pixQr): ?>
-        <section class="card">
-            <h2>Pagamento via Pix</h2>
-            <p>Chave Pix: <strong><?= h(PIX_KEY) ?></strong></p>
-            <p>Valor: <strong><?= money((float)$pixQr['total']) ?></strong></p>
-            <p class="muted">Pagamento registrado para confirmação externa do operador. Confirme o recebimento antes de encerrar o fluxo financeiro.</p>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=<?= urlencode((string)$pixQr['payload']) ?>" alt="QR Code Pix" style="display:block;max-width:220px;margin:12px auto;">
+        <section class="card pix-card">
+            <div>
+                <h2>Pagamento via Pix</h2>
+                <p>Chave Pix: <strong><?= h(PIX_KEY) ?></strong></p>
+                <p>Valor: <strong><?= money((float)$pixQr['total']) ?></strong></p>
+                <p class="muted">Pagamento registrado para confirmação externa do operador. Confirme o recebimento antes de encerrar o fluxo financeiro.</p>
+            </div>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=<?= urlencode((string)$pixQr['payload']) ?>" alt="QR Code Pix" class="pix-qr">
         </section>
     <?php endif; ?>
-    <section class="card">
-        <label class="scan-label">Código de barras<input id="barcode" autocomplete="off" autofocus placeholder="Passe o leitor ou digite o código e pressione Enter"></label>
-        <p id="scan-message" class="muted" aria-live="polite">Pronto para leitura do scanner.</p>
-        <div class="table-wrap"><table><thead><tr><th>Produto</th><th>Preço</th><th>Qtd.</th><th>Total</th><th></th></tr></thead><tbody id="cart-body"><tr><td colspan="5">Nenhum produto adicionado.</td></tr></tbody></table></div>
-        <div class="total-row"><span>Subtotal</span><strong id="subtotal">R$ 0,00</strong></div>
-        <div class="total-row"><span>Desconto</span>
-            <div class="discount-box">
-                <select id="discount-type" aria-label="Tipo de desconto">
-                    <option value="amount">R$</option>
-                    <option value="percent">%</option>
-                </select>
-                <input id="discount-input" type="number" min="0" step="0.01" value="0" style="max-width:140px">
+
+    <div class="pos-layout">
+        <section class="card pos-main-panel">
+            <div class="pos-scan-box">
+                <label class="scan-label">Código de barras
+                    <div class="scan-input-wrap">
+                        <span class="scan-icon">⌕</span>
+                        <input id="barcode" autocomplete="off" autofocus placeholder="Leia o código de barras ou digite o código do produto">
+                    </div>
+                </label>
+                <p id="scan-message" class="muted scan-message" aria-live="polite">Pronto para leitura do scanner.</p>
             </div>
-        </div>
-        <div class="total-row"><span>Total da venda</span><strong id="total" class="total-highlight">R$ 0,00</strong></div>
-        <div class="summary-box">
-            <div><span>Itens</span><strong id="items-count">0</strong></div>
-            <div><span>Pagamentos</span><strong id="payment-summary">R$ 0,00</strong></div>
-            <div><span>Troco</span><strong id="change-amount">R$ 0,00</strong></div>
-        </div>
-        <form method="post" id="checkout-form">
-            <input type="hidden" name="action" value="checkout">
-            <input type="hidden" name="csrf" value="<?= h($_SESSION['csrf_token']) ?>">
-            <input type="hidden" name="checkout_token" value="<?= h($_SESSION['pos_checkout_token']) ?>">
-            <input type="hidden" name="cart" id="cart-json">
-            <input type="hidden" name="discount" id="discount-hidden" value="0">
-            <input type="hidden" name="discount_type" id="discount-type-hidden" value="amount">
-            <h2>Pagamento</h2>
-            <div id="payments">
-                <div class="payment-row">
-                    <select name="method[]">
-                        <option value="dinheiro">Dinheiro</option>
-                        <option value="pix" selected>Pix</option>
-                        <option value="debito">Cartão de débito</option>
-                        <option value="credito">Cartão de crédito</option>
-                        <option value="outro">Outro</option>
-                    </select>
-                    <input name="amount[]" type="number" min="0" step="0.01" placeholder="Valor recebido" required>
-                    <button type="button" class="button secondary small remove-payment">Remover</button>
+
+            <div class="cart-head">
+                <h2>Carrinho</h2>
+                <span class="cart-count"><strong id="items-count">0</strong> itens</span>
+            </div>
+
+            <div class="table-wrap pos-table-wrap">
+                <table class="pos-table">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Preço</th>
+                            <th>Qtd.</th>
+                            <th>Subtotal</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cart-body">
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                <div class="empty-state-inner">
+                                    <span class="empty-icon">◌</span>
+                                    <span>Nenhum produto adicionado. Faça a leitura do primeiro item.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <aside class="pos-sidebar">
+            <section class="card summary-card">
+                <div class="summary-header">
+                    <h2>Resumo</h2>
                 </div>
-            </div>
-            <div class="actions">
-                <button type="button" class="button secondary" id="add-payment">Adicionar forma de pagamento</button>
-                <button type="submit" class="button" id="finish">Finalizar venda</button>
-            </div>
-        </form>
-    </section>
+
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span>Subtotal</span>
+                        <strong id="subtotal">R$ 0,00</strong>
+                    </div>
+                    <div class="summary-item">
+                        <span>Desconto</span>
+                        <strong id="discount-readonly">R$ 0,00</strong>
+                    </div>
+                    <div class="summary-item total-item">
+                        <span>Total</span>
+                        <strong id="total">R$ 0,00</strong>
+                    </div>
+                    <div class="summary-item compact-item">
+                        <span>Itens</span>
+                        <strong id="items-count-inline">0</strong>
+                    </div>
+                    <div class="summary-item compact-item">
+                        <span>Pago</span>
+                        <strong id="payment-summary">R$ 0,00</strong>
+                    </div>
+                    <div class="summary-item compact-item">
+                        <span>Restante</span>
+                        <strong id="remaining-amount">R$ 0,00</strong>
+                    </div>
+                    <div class="summary-item compact-item">
+                        <span>Troco</span>
+                        <strong id="change-amount">R$ 0,00</strong>
+                    </div>
+                </div>
+
+                <div class="discount-box-block">
+                    <label>Desconto</label>
+                    <div class="discount-box">
+                        <select id="discount-type" aria-label="Tipo de desconto">
+                            <option value="amount">R$</option>
+                            <option value="percent">%</option>
+                        </select>
+                        <input id="discount-input" type="number" min="0" step="0.01" value="0">
+                    </div>
+                </div>
+            </section>
+
+            <form method="post" id="checkout-form" class="card payment-card">
+                <input type="hidden" name="action" value="checkout">
+                <input type="hidden" name="csrf" value="<?= h($_SESSION['csrf_token']) ?>">
+                <input type="hidden" name="checkout_token" value="<?= h($_SESSION['pos_checkout_token']) ?>">
+                <input type="hidden" name="cart" id="cart-json">
+                <input type="hidden" name="discount" id="discount-hidden" value="0">
+                <input type="hidden" name="discount_type" id="discount-type-hidden" value="amount">
+
+                <div class="payment-header">
+                    <h2>Pagamento</h2>
+                </div>
+
+                <div id="payments" class="payments-list">
+                    <div class="payment-row">
+                        <select name="method[]">
+                            <option value="dinheiro">Dinheiro</option>
+                            <option value="pix" selected>Pix</option>
+                            <option value="debito">Cartão de débito</option>
+                            <option value="credito">Cartão de crédito</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                        <input name="amount[]" type="number" min="0" step="0.01" placeholder="Valor recebido" required>
+                        <button type="button" class="button secondary small remove-payment">Remover</button>
+                    </div>
+                </div>
+
+                <div class="actions actions-payment">
+                    <button type="button" class="button secondary" id="add-payment">Adicionar forma de pagamento</button>
+                    <button type="submit" class="button" id="finish">Finalizar venda</button>
+                </div>
+            </form>
+        </aside>
+    </div>
 </main>
 <script>
 const input = document.getElementById('barcode');
 const tbody = document.getElementById('cart-body');
 const subtotalEl = document.getElementById('subtotal');
 const totalEl = document.getElementById('total');
+const discountReadOnlyEl = document.getElementById('discount-readonly');
 const changeEl = document.getElementById('change-amount');
 const paymentSummaryEl = document.getElementById('payment-summary');
 const itemCountEl = document.getElementById('items-count');
+const itemCountInlineEl = document.getElementById('items-count-inline');
+const remainingEl = document.getElementById('remaining-amount');
 const discountInput = document.getElementById('discount-input');
 const discountType = document.getElementById('discount-type');
 const discountHidden = document.getElementById('discount-hidden');
 const discountTypeHidden = document.getElementById('discount-type-hidden');
 const cart = new Map();
 let busy = false;
-const money = n => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-function subtotal(){let n=0;for(const x of cart.values())n+=x.price*x.qty;return Math.round((n+Number.EPSILON)*100)/100;}
-function total(){
-  const current = Number(discountInput.value || 0);
-  const subtotalValue = subtotal();
-  if (discountType.value === 'percent') {
-    const pct = current > 0 ? current / 100 : 0;
-    return Math.max(0, Math.round((subtotalValue * (1 - pct) + Number.EPSILON) * 100) / 100);
+const money = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+function subtotal() {
+  let total = 0;
+  for (const item of cart.values()) {
+    total += item.price * item.qty;
   }
-  return Math.max(0, Math.round((subtotalValue - current + Number.EPSILON) * 100) / 100);
+  return Math.round((total + Number.EPSILON) * 100) / 100;
 }
-function updatePaymentSummary(){
+
+function currentDiscountValue() {
+  const value = Number(discountInput.value || 0);
+  if (discountType.value === 'percent') {
+    return Math.min(100, Math.max(0, value)) / 100 * subtotal();
+  }
+  return Math.max(0, value);
+}
+
+function total() {
+  const subtotalValue = subtotal();
+  const discountValue = currentDiscountValue();
+  return Math.max(0, Math.round((subtotalValue - discountValue + Number.EPSILON) * 100) / 100);
+}
+
+function updatePaymentSummary() {
   const rows = [...document.querySelectorAll('input[name="amount[]"]')];
   const received = rows.reduce((sum, field) => sum + Number(field.value || 0), 0);
   paymentSummaryEl.textContent = money(received);
+
+  const totalValue = total();
+  const remaining = Math.max(0, Number((totalValue - received).toFixed(2)));
+  remainingEl.textContent = money(remaining);
+
   const hasCashPayment = [...document.querySelectorAll('select[name="method[]"]')].some((field) => field.value === 'dinheiro');
-  const change = hasCashPayment ? Math.max(0, Number((received - total()).toFixed(2))) : 0;
+  const change = hasCashPayment ? Math.max(0, Number((received - totalValue).toFixed(2))) : 0;
   changeEl.textContent = money(change);
 }
-function render(){
-  tbody.innerHTML='';
+
+function render() {
+  tbody.innerHTML = '';
   let itemsCount = 0;
-  if(!cart.size){tbody.innerHTML='<tr><td colspan="5">Nenhum produto adicionado.</td></tr>';} 
-  for(const [barcode,p] of cart){
-    itemsCount += p.qty;
-    const tr=document.createElement('tr');
-    const name=document.createElement('td'); name.textContent=p.name;
-    const price=document.createElement('td'); price.textContent=money(p.price);
-    const q=document.createElement('td');
-    const qty=document.createElement('input'); qty.type='number'; qty.min='0.001'; qty.step='0.001'; qty.value=p.qty; qty.style.width='90px'; qty.addEventListener('change',()=>{const v=Number(qty.value);if(v<=0){cart.delete(barcode)}else{p.qty=v;}render();}); q.appendChild(qty);
-    const line=document.createElement('td'); line.textContent=money(p.price*p.qty);
-    const act=document.createElement('td');
-    const del=document.createElement('button'); del.type='button'; del.className='button danger small'; del.textContent='Remover'; del.addEventListener('click',()=>{cart.delete(barcode);render();}); act.appendChild(del);
-    tr.append(name,price,q,line,act); tbody.appendChild(tr);
+
+  if (!cart.size) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><div class="empty-state-inner"><span class="empty-icon">◌</span><span>Nenhum produto adicionado. Faça a leitura do primeiro item.</span></div></td></tr>';
+  } else {
+    for (const [barcode, product] of cart) {
+      itemsCount += product.qty;
+      const tr = document.createElement('tr');
+
+      const name = document.createElement('td');
+      name.textContent = product.name;
+
+      const price = document.createElement('td');
+      price.textContent = money(product.price);
+
+      const qtyCell = document.createElement('td');
+      const qtyInput = document.createElement('input');
+      qtyInput.type = 'number';
+      qtyInput.min = '1';
+      qtyInput.step = '1';
+      qtyInput.value = product.qty;
+      qtyInput.addEventListener('change', () => {
+        const nextQty = Number(qtyInput.value) || 0;
+        if (nextQty <= 0) {
+          cart.delete(barcode);
+        } else {
+          product.qty = nextQty;
+        }
+        render();
+      });
+      qtyCell.appendChild(qtyInput);
+
+      const subtotalCell = document.createElement('td');
+      subtotalCell.textContent = money(product.price * product.qty);
+
+      const actions = document.createElement('td');
+      const removeButton = document.createElement('button');
+      removeButton.type = 'button';
+      removeButton.className = 'button danger small';
+      removeButton.textContent = 'Remover';
+      removeButton.addEventListener('click', () => {
+        cart.delete(barcode);
+        render();
+      });
+      actions.appendChild(removeButton);
+
+      tr.append(name, price, qtyCell, subtotalCell, actions);
+      tbody.appendChild(tr);
+    }
   }
+
   itemCountEl.textContent = String(itemsCount);
-  subtotalEl.textContent=money(subtotal());
-  totalEl.textContent=money(total());
-  discountHidden.value = String(Number(discountInput.value || 0));
+  itemCountInlineEl.textContent = String(itemsCount);
+  subtotalEl.textContent = money(subtotal());
+  totalEl.textContent = money(total());
+  discountReadOnlyEl.textContent = money(currentDiscountValue());
+  discountHidden.value = String(Number(currentDiscountValue().toFixed(2)));
   discountTypeHidden.value = discountType.value;
-  document.getElementById('cart-json').value = JSON.stringify([...cart].map(([barcode,p]) => ({barcode,qty:p.qty})));
+  document.getElementById('cart-json').value = JSON.stringify([...cart].map(([barcode, product]) => ({ barcode, qty: product.qty })));
   updatePaymentSummary();
 }
-input.addEventListener('keydown', async e => {
-  if(e.key !== 'Enter') return;
-  e.preventDefault();
-  if(busy) return;
+
+input.addEventListener('keydown', async (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  if (busy) return;
+
   const code = input.value.trim();
-  if(!code) return;
-  busy = true; input.disabled = true;
+  if (!code) return;
+
+  busy = true;
+  input.disabled = true;
+
   try {
-    const r = await fetch('product_lookup.php?barcode=' + encodeURIComponent(code), {headers:{'Accept':'application/json'}});
-    const data = await r.json();
-    if(!r.ok || !data.ok){
+    const response = await fetch('product_lookup.php?barcode=' + encodeURIComponent(code), {
+      headers: { Accept: 'application/json' }
+    });
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
       document.getElementById('scan-message').textContent = data.message || 'Produto não encontrado. Cadastre-o antes de vender.';
       return;
     }
-    const p = data.product;
-    const existing = cart.get(p.barcode);
-    if(existing){ existing.qty += 1; }
-    else { cart.set(p.barcode,{...p,qty:1}); }
-    document.getElementById('scan-message').textContent = p.name + ' adicionado.';
+
+    const product = data.product;
+    const existing = cart.get(product.barcode);
+    if (existing) {
+      existing.qty += 1;
+    } else {
+      cart.set(product.barcode, { ...product, qty: 1 });
+    }
+
+    document.getElementById('scan-message').textContent = product.name + ' adicionado ao carrinho.';
     render();
-  } catch (err) {
+  } catch (error) {
     document.getElementById('scan-message').textContent = 'Falha na consulta. Verifique a conexão com o sistema.';
   } finally {
     input.disabled = false;
@@ -412,6 +577,7 @@ input.addEventListener('keydown', async e => {
     busy = false;
   }
 });
+
 discountInput.addEventListener('input', render);
 discountType.addEventListener('change', () => {
   const value = Number(discountInput.value || 0);
@@ -427,6 +593,7 @@ discountType.addEventListener('change', () => {
   }
   render();
 });
+
 document.querySelectorAll('input[name="amount[]"]').forEach((field) => field.addEventListener('input', updatePaymentSummary));
 document.getElementById('payments').addEventListener('input', (event) => {
   const target = event.target;
@@ -440,33 +607,51 @@ document.getElementById('payments').addEventListener('change', (event) => {
     updatePaymentSummary();
   }
 });
-document.getElementById('add-payment').addEventListener('click',()=>{
-  const row=document.createElement('div'); row.className='payment-row';
-  row.innerHTML='<select name="method[]"><option value="dinheiro">Dinheiro</option><option value="pix">Pix</option><option value="debito">Cartão de débito</option><option value="credito">Cartão de crédito</option><option value="outro">Outro</option></select><input name="amount[]" type="number" min="0" step="0.01" placeholder="Valor recebido" required><button type="button" class="button secondary small remove-payment">Remover</button>';
+document.getElementById('add-payment').addEventListener('click', () => {
+  const row = document.createElement('div');
+  row.className = 'payment-row';
+  row.innerHTML = '<select name="method[]"><option value="dinheiro">Dinheiro</option><option value="pix">Pix</option><option value="debito">Cartão de débito</option><option value="credito">Cartão de crédito</option><option value="outro">Outro</option></select><input name="amount[]" type="number" min="0" step="0.01" placeholder="Valor recebido" required><button type="button" class="button secondary small remove-payment">Remover</button>';
+
   const amountInput = row.querySelector('input[name="amount[]"]');
   if (amountInput) amountInput.addEventListener('input', updatePaymentSummary);
+
   const methodSelect = row.querySelector('select[name="method[]"]');
   if (methodSelect) methodSelect.addEventListener('change', updatePaymentSummary);
+
   document.getElementById('payments').appendChild(row);
 });
+
 document.getElementById('payments').addEventListener('click', (event) => {
   const button = event.target.closest('.remove-payment');
   if (!button) return;
+
   const rows = document.querySelectorAll('.payment-row');
   if (rows.length > 1) {
     button.closest('.payment-row').remove();
     updatePaymentSummary();
   }
 });
-document.getElementById('checkout-form').addEventListener('submit',e=>{
-  if(!cart.size){e.preventDefault(); alert('Adicione produtos antes de finalizar.'); return; }
-  const sum=[...document.querySelectorAll('input[name="amount[]"]')].reduce((s,x)=>s+Number(x.value||0),0);
-  if(Math.round(sum*100) < Math.round(total()*100)){ e.preventDefault(); alert('A soma dos pagamentos deve cobrir o total da venda.'); return; }
-  document.getElementById('cart-json').value=JSON.stringify([...cart].map(([barcode,p])=>({barcode,qty:p.qty}))); 
-  document.getElementById('discount-hidden').value=String(Number(discountInput.value||0));
-  document.getElementById('discount-type-hidden').value=discountType.value;
-  document.getElementById('finish').disabled=true;
+
+document.getElementById('checkout-form').addEventListener('submit', (event) => {
+  if (!cart.size) {
+    event.preventDefault();
+    alert('Adicione produtos antes de finalizar.');
+    return;
+  }
+
+  const sum = [...document.querySelectorAll('input[name="amount[]"]')].reduce((accumulator, field) => accumulator + Number(field.value || 0), 0);
+  if (Math.round(sum * 100) < Math.round(total() * 100)) {
+    event.preventDefault();
+    alert('A soma dos pagamentos deve cobrir o total da venda.');
+    return;
+  }
+
+  document.getElementById('cart-json').value = JSON.stringify([...cart].map(([barcode, product]) => ({ barcode, qty: product.qty })));
+  document.getElementById('discount-hidden').value = String(Number(currentDiscountValue().toFixed(2)));
+  document.getElementById('discount-type-hidden').value = discountType.value;
+  document.getElementById('finish').disabled = true;
 });
+
 render();
 input.focus();
 </script>
