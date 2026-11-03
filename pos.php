@@ -423,6 +423,7 @@ if (empty($_SESSION['csrf_token'])) {
         </aside>
     </div>
 </main>
+<script src="money-mask.js"></script>
 <script>
 const input = document.getElementById('barcode');
 const tbody = document.getElementById('cart-body');
@@ -442,6 +443,20 @@ const cart = new Map();
 let busy = false;
 const canSell = <?= $canSell ? 'true' : 'false' ?>;
 const money = (n) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+if (window.moneyMask) {
+  window.moneyMask.attachMoneyMask('#discount-input');
+}
+
+function normalizeInputNumber(field) {
+  if (!field) return '0.00';
+  const value = field.value || '0';
+  if (window.moneyMask) {
+    return window.moneyMask.normalizeMoneyValue(value);
+  }
+  const normalized = Number(String(value).replace(/[.]/g, '').replace(',', '.')) || 0;
+  return normalized.toFixed(2);
+}
 
 if (!canSell) {
   input.disabled = true;
@@ -463,7 +478,7 @@ function subtotal() {
 }
 
 function currentDiscountValue() {
-  const value = Number(discountInput.value || 0);
+  const value = Number(normalizeInputNumber(discountInput));
   if (discountType.value === 'percent') {
     return Math.min(100, Math.max(0, value)) / 100 * subtotal();
   }
@@ -478,7 +493,7 @@ function total() {
 
 function updatePaymentSummary() {
   const rows = [...document.querySelectorAll('input[name="amount[]"]')];
-  const received = rows.reduce((sum, field) => sum + Number(field.value || 0), 0);
+  const received = rows.reduce((sum, field) => sum + Number(normalizeInputNumber(field)), 0);
   paymentSummaryEl.textContent = money(received);
 
   const totalValue = total();
@@ -599,7 +614,11 @@ if (canSell) {
     }
   });
 
-  discountInput.addEventListener('input', render);
+  discountInput.addEventListener('input', function () {
+    const value = window.moneyMask ? window.moneyMask.normalizeMoneyValue(this.value || '0') : (this.value || '0');
+    this.value = value.startsWith('-') ? value : value;
+    render();
+  });
   discountType.addEventListener('change', () => {
     const value = Number(discountInput.value || 0);
     if (discountType.value === 'percent') {
@@ -615,7 +634,13 @@ if (canSell) {
     render();
   });
 
-  document.querySelectorAll('input[name="amount[]"]').forEach((field) => field.addEventListener('input', updatePaymentSummary));
+  document.querySelectorAll('input[name="amount[]"]').forEach((field) => {
+    if (window.moneyMask) {
+      window.moneyMask.attachMoneyMask(field);
+    }
+    field.addEventListener('input', updatePaymentSummary);
+  });
+
   document.getElementById('payments').addEventListener('input', (event) => {
     const target = event.target;
     if (target && target.matches('input[name="amount[]"]')) {
@@ -631,10 +656,13 @@ if (canSell) {
   document.getElementById('add-payment').addEventListener('click', () => {
     const row = document.createElement('div');
     row.className = 'payment-row';
-    row.innerHTML = '<select name="method[]"><option value="dinheiro">Dinheiro</option><option value="pix">Pix</option><option value="debito">Cartão de débito</option><option value="credito">Cartão de crédito</option><option value="outro">Outro</option></select><input name="amount[]" type="number" min="0" step="0.01" placeholder="Valor recebido" required><button type="button" class="button secondary small remove-payment">Remover</button>';
+    row.innerHTML = '<select name="method[]"><option value="dinheiro">Dinheiro</option><option value="pix">Pix</option><option value="debito">Cartão de débito</option><option value="credito">Cartão de crédito</option><option value="outro">Outro</option></select><input name="amount[]" type="text" min="0" step="0.01" placeholder="Valor recebido" required><button type="button" class="button secondary small remove-payment">Remover</button>';
 
     const amountInput = row.querySelector('input[name="amount[]"]');
-    if (amountInput) amountInput.addEventListener('input', updatePaymentSummary);
+    if (amountInput) {
+      if (window.moneyMask) window.moneyMask.attachMoneyMask(amountInput);
+      amountInput.addEventListener('input', updatePaymentSummary);
+    }
 
     const methodSelect = row.querySelector('select[name="method[]"]');
     if (methodSelect) methodSelect.addEventListener('change', updatePaymentSummary);
@@ -658,6 +686,16 @@ if (canSell) {
       event.preventDefault();
       alert('Adicione produtos antes de finalizar.');
       return;
+    }
+
+    document.querySelectorAll('input[name="amount[]"]').forEach((field) => {
+      if (window.moneyMask) {
+        field.value = window.moneyMask.normalizeMoneyValue(field.value || '0');
+      }
+    });
+
+    if (discountInput && window.moneyMask) {
+      discountInput.value = window.moneyMask.normalizeMoneyValue(discountInput.value || '0');
     }
 
     const sum = [...document.querySelectorAll('input[name="amount[]"]')].reduce((accumulator, field) => accumulator + Number(field.value || 0), 0);

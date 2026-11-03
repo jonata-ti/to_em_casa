@@ -114,6 +114,46 @@ function normalizeBarcode(string $value): string
     return strtoupper($value);
 }
 
+function normalizeMoneyValue(mixed $value): float
+{
+    if ($value === null || $value === '') {
+        return 0.0;
+    }
+
+    if (is_numeric($value)) {
+        return round((float)$value, 2);
+    }
+
+    $clean = trim((string)$value);
+    $clean = preg_replace('/[^\d,.-]/u', '', $clean);
+    if ($clean === '' || $clean === '-' || $clean === '.' || $clean === ',') {
+        return 0.0;
+    }
+
+    $hasComma = strpos($clean, ',') !== false;
+    $hasDot = strpos($clean, '.') !== false;
+
+    if ($hasComma && $hasDot) {
+        if (strrpos($clean, ',') > strrpos($clean, '.')) {
+            $clean = str_replace('.', '', $clean);
+            $clean = str_replace(',', '.', $clean);
+        } else {
+            $clean = str_replace(',', '', $clean);
+        }
+    } elseif ($hasComma) {
+        $clean = str_replace(',', '.', $clean);
+    } elseif (substr_count($clean, '.') > 1) {
+        $clean = str_replace('.', '', $clean);
+    }
+
+    $normalized = (float)$clean;
+    if (!is_finite($normalized)) {
+        return 0.0;
+    }
+
+    return round($normalized, 2);
+}
+
 define('PIX_KEY', getenv('PIX_KEY') ?: '98985346984');
 define('PIX_NAME', getenv('PIX_NAME') ?: 'TÔ EM CASA');
 

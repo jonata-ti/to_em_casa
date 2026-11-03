@@ -305,48 +305,28 @@ foreach ($products as $p) {
         </div>
     </section>
 </main>
+<script src="money-mask.js"></script>
 <script>
-const modal = document.getElementById('product-modal');
-const openBtn = document.getElementById('open-product-modal');
-const closeButtons = document.querySelectorAll('[data-close="modal"]');
-
-function closeProductModal() {
-  if (!modal) return;
-  modal.classList.remove('open');
-  modal.style.display = 'none';
-
-  const url = new URL(window.location.href);
-  url.searchParams.delete('open');
-  window.history.replaceState({}, '', url);
-}
-
-if (modal && modal.classList.contains('open')) {
-  modal.style.display = 'flex';
-}
-
-if (openBtn) {
-  openBtn.addEventListener('click', () => {
-    if (!modal) return;
-    modal.classList.add('open');
-    modal.style.display = 'flex';
-
-    const url = new URL(window.location.href);
-    url.searchParams.set('open', '1');
-    window.history.replaceState({}, '', url);
-  });
-}
-
-closeButtons.forEach((button) => {
-  button.addEventListener('click', closeProductModal);
-});
-
-if (modal) {
-  modal.addEventListener('click', (event) => {
-    if (event.target && event.target.matches('.modal-backdrop')) {
-      closeProductModal();
+(function () {
+  function attachProductCurrencyFields() {
+    if (window.moneyMask) {
+      window.moneyMask.attachMoneyMask('input[name="cost_price"], input[name="sale_price"]');
     }
-  });
-}
+
+    document.querySelectorAll('form').forEach((form) => {
+      form.addEventListener('submit', () => {
+        ['cost_price', 'sale_price'].forEach((fieldName) => {
+          const field = form.querySelector('input[name="' + fieldName + '"]');
+          if (field) {
+            field.value = window.moneyMask ? window.moneyMask.normalizeMoneyValue(field.value || '0') : field.value;
+          }
+        });
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', attachProductCurrencyFields);
+})();
 </script>
 </body>
 </html>
