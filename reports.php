@@ -7,6 +7,10 @@ requireRole(['admin']);
 $user = currentUser();
 function h(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); }
 function csvLabel(string $value): string { return str_replace(["\r\n", "\n", ";", ","], [' ', ' ', ' ', ' '], $value); }
+function formatMoneyBr($value): string {
+    $numeric = (float)$value;
+    return number_format($numeric, 2, ',', '.');
+}
 
 $reportType = $_GET['report'] ?? 'sales';
 $dateFrom = trim((string)($_GET['date_from'] ?? ''));
@@ -61,22 +65,106 @@ if ($reportType === 'cash') {
 $csvUrl = 'reports.php?report=' . urlencode($reportType) . '&date_from=' . urlencode($dateFrom) . '&date_to=' . urlencode($dateTo) . '&csv=1';
 
 if (isset($_GET['csv']) && $_GET['csv'] === '1') {
+    $filename = 'relatorio_' . $reportType . '_' . date('Ymd_His');
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename=relatorio_' . $reportType . '.csv');
+    header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
     $out = fopen('php://output', 'w');
+    fwrite($out, "\xEF\xBB\xBF");
+
     if ($reportType === 'sales') {
-        fputcsv($out, ['id', 'sale_number', 'total', 'created_at', 'seller_name', 'method', 'amount']);
-        foreach ($displayRows as $row) { fputcsv($out, [$row['id'], $row['sale_number'], $row['total'], $row['created_at'], $row['seller_name'] ?? '', $row['method'] ?? '', $row['amount'] ?? '']); }
+        $header = ['ID', 'Número da venda', 'Total da venda', 'Data e hora', 'Vendedor', 'Meio de pagamento', 'Valor recebido'];
+        fputcsv($out, $header, ';', '"', '\\');
+
+        foreach ($displayRows as $row) {
+            fputcsv(
+                $out,
+                [
+                    (int)($row['id'] ?? 0),
+                    (string)($row['sale_number'] ?? ''),
+                    formatMoneyBr((float)($row['total'] ?? 0)),
+                    (string)($row['created_at'] ?? ''),
+                    (string)($row['seller_name'] ?? ''),
+                    (string)($row['method'] ?? ''),
+                    formatMoneyBr((float)($row['amount'] ?? 0)),
+                ],
+                ';',
+                '"',
+                '\\'
+            );
+        }
     } elseif ($reportType === 'stock') {
-        fputcsv($out, ['id', 'product', 'movement_type', 'quantity', 'before_qty', 'after_qty', 'created_at', 'reason', 'user']);
-        foreach ($displayRows as $row) { fputcsv($out, [$row['id'], $row['product_name'] ?? '', $row['movement_type'], $row['quantity'], $row['before_qty'], $row['after_qty'], $row['created_at'], $row['movement_reason'] ?? '', $row['user_name'] ?? '']); }
+        $header = ['ID', 'Produto', 'Tipo', 'Quantidade', 'Antes', 'Depois', 'Data', 'Motivo', 'Usuário'];
+        fputcsv($out, $header, ';', '"', '\\');
+
+        foreach ($displayRows as $row) {
+            fputcsv(
+                $out,
+                [
+                    (int)($row['id'] ?? 0),
+                    (string)($row['product_name'] ?? ''),
+                    (string)($row['movement_type'] ?? ''),
+                    (string)($row['quantity'] ?? ''),
+                    (string)($row['before_qty'] ?? ''),
+                    (string)($row['after_qty'] ?? ''),
+                    (string)($row['created_at'] ?? ''),
+                    (string)($row['movement_reason'] ?? ''),
+                    (string)($row['user_name'] ?? ''),
+                ],
+                ';',
+                '"',
+                '\\'
+            );
+        }
     } elseif ($reportType === 'finance') {
-        fputcsv($out, ['id', 'type', 'category', 'description', 'amount', 'status', 'entry_date', 'due_date']);
-        foreach ($displayRows as $row) { fputcsv($out, [$row['id'], $row['entry_type'], $row['category_name'] ?? '', $row['description'], $row['amount'], $row['status'], $row['entry_date'], $row['due_date'] ?? '']); }
+        $header = ['ID', 'Tipo', 'Categoria', 'Descrição', 'Valor', 'Status', 'Data de lançamento', 'Data de vencimento'];
+        fputcsv($out, $header, ';', '"', '\\');
+
+        foreach ($displayRows as $row) {
+            fputcsv(
+                $out,
+                [
+                    (int)($row['id'] ?? 0),
+                    (string)($row['entry_type'] ?? ''),
+                    (string)($row['category_name'] ?? ''),
+                    (string)($row['description'] ?? ''),
+                    formatMoneyBr((float)($row['amount'] ?? 0)),
+                    (string)($row['status'] ?? ''),
+                    (string)($row['entry_date'] ?? ''),
+                    (string)($row['due_date'] ?? ''),
+                ],
+                ';',
+                '"',
+                '\\'
+            );
+        }
     } else {
-        fputcsv($out, ['id', 'cash_register_id', 'movement_type', 'related_sale_id', 'amount', 'reason', 'created_at', 'user']);
-        foreach ($displayRows as $row) { fputcsv($out, [$row['id'], $row['cash_id'] ?? '', $row['movement_type'], $row['related_sale_id'] ?? '', $row['amount'], $row['reason'], $row['created_at'], $row['username'] ?? '']); }
+        $header = ['ID', 'Caixa', 'Tipo', 'Venda relacionada', 'Valor', 'Motivo', 'Data e hora', 'Usuário'];
+        fputcsv($out, $header, ';', '"', '\\');
+
+        foreach ($displayRows as $row) {
+            fputcsv(
+                $out,
+                [
+                    (int)($row['id'] ?? 0),
+                    (string)($row['cash_id'] ?? ''),
+                    (string)($row['movement_type'] ?? ''),
+                    (string)($row['related_sale_id'] ?? ''),
+                    formatMoneyBr((float)($row['amount'] ?? 0)),
+                    (string)($row['reason'] ?? ''),
+                    (string)($row['created_at'] ?? ''),
+                    (string)($row['username'] ?? ''),
+                ],
+                ';',
+                '"',
+                '\\'
+            );
+        }
     }
+
     fclose($out);
     exit;
 }
