@@ -328,5 +328,37 @@ foreach ($products as $p) {
   document.addEventListener('DOMContentLoaded', attachProductCurrencyFields);
 })();
 </script>
+<script>
+(function () {
+  const modal = document.getElementById('product-modal');
+  const openButton = document.getElementById('open-product-modal');
+
+  if (modal && openButton) {
+    openButton.addEventListener('click', () => {
+      modal.classList.add('open');
+    });
+  }
+
+  if (modal) {
+    modal.querySelectorAll('[data-close="modal"]').forEach((trigger) => {
+      trigger.addEventListener('click', () => {
+        modal.classList.remove('open');
+      });
+    });
+
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        modal.classList.remove('open');
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && modal.classList.contains('open')) {
+        modal.classList.remove('open');
+      }
+    });
+  }
+})();
+</script>
 </body>
 </html>
