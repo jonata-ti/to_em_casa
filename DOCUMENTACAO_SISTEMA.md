@@ -76,6 +76,7 @@ Arquivos principais:
 - O pagamento pode ser dividido entre formas diferentes.
 - O sistema calcula automaticamente o troco com base no valor recebido.
 - Se o pagamento for Pix, o sistema gera o QR Code da cobrança ao finalizar a venda.
+- Após a finalização da venda, o sistema gera a notinha do cliente e dispara a impressão automática do comprovante em layout térmico.
 
 ### 5. Caixa
 - O caixa pode ser aberto por usuário.
@@ -98,6 +99,14 @@ Arquivos principais:
 - Guarda usuário responsável, operação, entidade e detalhe da ação.
 - Não armazena senha em claro ou dados sensíveis extras.
 
+## Emissão da notinha do cliente
+- O comprovante é gerado no módulo `pos.php` e renderizado em um container dedicado com a classe `.receipt-ticket`.
+- O conteúdo inclui nome da loja, pedido, data, vendedor, itens, subtotal, desconto, total, valores pagos e troco.
+- A impressão é acionada automaticamente ao finalizar a venda, sem abrir a tela completa do PDV no navegador.
+- O código cria uma janela temporária com somente o ticket para evitar imprimir toda a interface do sistema.
+- O layout foi ajustado para 72mm de largura e usa fonte `Arial`, o que melhora a compatibilidade com impressoras térmicas POS-80.
+- A visualização em tela também mantém o ticket em formato compacto e legível para o operador.
+
 ## Configuração do Pix
 - Ajuste a chave Pix e o nome do recebedor em `config.php`.
 - Exemplo:
@@ -114,6 +123,7 @@ Arquivos principais:
 6. Verifique o troco calculado automaticamente.
 7. Se a forma for Pix, o QR Code será gerado na tela.
 8. Finalize a venda e consulte o histórico de caixa.
+9. O comprovante da notinha será impresso automaticamente em formato térmico.
 
 ## Atualizações registradas
 - Implementado módulo financeiro.
@@ -126,6 +136,7 @@ Arquivos principais:
 - Normalização do código de barras para evitar falhas na busca do PDV.
 - Cálculo automático de troco em vendas.
 - Geração de QR Code Pix na finalização da venda.
+- Implementada a impressão automática da notinha do cliente em layout térmico para POS-80.
 - Atualização desta documentação.
 
 ## Observações finais

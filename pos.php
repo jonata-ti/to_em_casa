@@ -271,7 +271,110 @@ if (empty($_SESSION['csrf_token'])) {
 
     <?php if($error): ?><div class="error"><?= h($error) ?></div><?php endif; ?>
     <?php if($success): ?><div class="success"><?= h($success) ?></div><?php endif; ?>
-    <?php if($receipt): ?><div class="success">Venda #<?= h((string)$receipt['number']) ?> concluída — total <?= money((float)$receipt['total']) ?>.</div><?php endif; ?>
+    <?php if($receipt): ?>
+        <?php
+            $receiptSubtotal = array_reduce($receipt['items'], fn($sum, $item) => $sum + (float)($item['line'] ?? 0), 0.0);
+            $receiptPaymentsText = [];
+            foreach ($receipt['payments'] as $payment) {
+                $receiptPaymentsText[] = h((string)$payment['method']) . ' — ' . money((float)$payment['amount']);
+            }
+            $receiptChange = 0.0;
+            foreach ($receipt['payments'] as $payment) {
+                $receiptChange += (float)$payment['amount'];
+            }
+            $receiptChange = max(0.0, $receiptChange - (float)$receipt['total']);
+        ?>
+        <script>
+            window.addEventListener('load', function () {
+                setTimeout(function () {
+                    printReceiptOnly();
+                }, 250);
+            });
+        </script>
+        <section class="card receipt-card">
+            <div class="receipt-header no-print">
+                <div>
+                    <div class="eyebrow">Comprovante</div>
+                    <h2>Notinha do cliente</h2>
+                </div>
+                <button type="button" class="button small" onclick="printReceiptOnly()">Imprimir nota</button>
+            </div>
+
+            <div class="receipt-ticket" id="receipt-ticket">
+                <div class="center">
+                    <div class="empresa-nome">TÔ EM CASA</div>
+                    <div>ADEGA &amp; CONVENIÊNCIA</div>
+                    <div>CNPJ: 00.000.000/0001-00</div>
+                    <div>Rua da Loja, 123 - Centro</div>
+                    <div>Tel/WhatsApp: (11) 99999-9999</div>
+                </div>
+
+                <div class="line"></div>
+
+                <div>
+                    <div><strong>Pedido:</strong> #<?= h((string)$receipt['number']) ?></div>
+                    <div><strong>Data:</strong> <?= date('d/m/Y H:i') ?></div>
+                    <div><strong>Cliente:</strong> Consumidor</div>
+                    <div><strong>Vendedor:</strong> <?= h((string)($user['username'] ?? 'Sistema')) ?></div>
+                </div>
+
+                <div class="line"></div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item / Qtd x Unitário</th>
+                            <th class="right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($receipt['items'] as $item): ?>
+                            <?php $product = $item['p']; ?>
+                            <tr>
+                                <td>
+                                    <?= h((string)$product['name']) ?><br>
+                                    <small><?= h((string)$item['qty']) ?>x R$ <?= number_format((float)$product['sale_price'], 2, ',', '.') ?></small>
+                                </td>
+                                <td class="right align-top"><?= money((float)$item['line']) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+
+                <div class="line"></div>
+
+                <div class="totals-container">
+                    <div class="total-row">
+                        <span>Subtotal:</span>
+                        <span><?= money((float)$receiptSubtotal) ?></span>
+                    </div>
+                    <div class="total-row">
+                        <span>Desconto:</span>
+                        <span><?= money((float)($receipt['discount'] ?? 0)) ?></span>
+                    </div>
+                    <div class="total-row total-geral">
+                        <span>TOTAL:</span>
+                        <span><?= money((float)$receipt['total']) ?></span>
+                    </div>
+                </div>
+
+                <div class="line"></div>
+
+                <div>
+                    <div><strong>Pagamento:</strong> <?= implode(' / ', $receiptPaymentsText) ?></div>
+                    <div><strong>Valor pago:</strong> <?= money((float)array_sum(array_map(fn($payment) => (float)$payment['amount'], $receipt['payments']))) ?></div>
+                    <div><strong>Troco:</strong> <?= money((float)$receiptChange) ?></div>
+                </div>
+
+                <div class="line"></div>
+
+                <div class="footer">
+                    <p>Obrigado pela preferência!</p>
+                    <p class="small-print">Documento não fiscal</p>
+                </div>
+            </div>
+        </section>
+    <?php endif; ?>
     <?php if($pixQr): ?>
         <section class="card pix-card">
             <div>
@@ -700,6 +803,79 @@ if (canSell) {
 
 render();
 if (canSell) input.focus();
+
+function printReceiptOnly() {
+  const ticket = document.getElementById('receipt-ticket');
+  if (!ticket) return;
+
+  const printWindow = window.open('', '_blank', 'width=350,height=850,menubar=no,toolbar=no,location=no,status=no');
+  if (!printWindow) {
+    alert('O navegador bloqueou a janela de impressão. Permita pop-ups e tente novamente.');
+    return;
+  }
+
+  const html = `<!DOCTYPE html>
+    <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8" />
+        <title>Notinha do cliente</title>
+        <style>
+          @page { size: 72mm auto; margin: 0; }
+          * { box-sizing: border-box; }
+          html, body {
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            color: #000;
+            font-family: Arial, Helvetica, sans-serif;
+            width: 72mm;
+          }
+          body {
+            width: 72mm;
+            margin: 0 auto;
+            padding: 4mm;
+          }
+          .receipt-ticket {
+            width: 72mm;
+            max-width: 72mm;
+            background: #fff;
+            color: #000;
+            padding: 0;
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.25;
+            font-family: Arial, Helvetica, sans-serif;
+          }
+          .center { text-align: center; }
+          .right { text-align: right; }
+          .align-top { vertical-align: top; }
+          .line { border-top: 1px dashed #000; margin: 6px 0; }
+          .empresa-nome { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+          table { width: 100%; border-collapse: collapse; margin: 4px 0; }
+          th, td { font-size: 11px; text-align: left; padding: 2px 0; }
+          th { border-bottom: 1px dashed #000; }
+          th.right, td.right { text-align: right; }
+          .total-row { display: flex; justify-content: space-between; margin: 2px 0; }
+          .total-geral { font-size: 13px; font-weight: 700; margin-top: 4px; border-top: 1px solid #000; padding-top: 4px; }
+          .footer { text-align: center; margin-top: 8px; font-size: 11px; }
+          .small-print { margin-top: 4px; font-size: 9px; color: #555; }
+        </style>
+      </head>
+      <body>
+        <div class="receipt-ticket">${ticket.innerHTML}</div>
+      </body>
+    </html>`;
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.close();
+  }, 350);
+}
 </script>
 </body>
 </html>

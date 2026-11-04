@@ -1,0 +1,11 @@
+.env
+.env.*
+.git/
+vendor/
+node_modules/
+.DS_Store
+Thumbs.db
+backup_*/
+*.bak
+*.log
+.githubcopilot-instructions.md

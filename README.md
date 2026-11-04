@@ -56,6 +56,7 @@ Use as migrações em ordem porque elas ampliam os campos e tabelas existentes s
 - Módulo financeiro com despesas/receitas, categorias, status e filtros.
 - Dashboard gerencial e relatórios em CSV.
 - Auditoria de eventos relevantes do sistema.
+- Imprimindo automaticamente a notinha do cliente após a conclusão da venda, em formato compacto para impressora térmica POS-80.
 
 ## Configuração do Pix
 - Defina a chave Pix e o nome do recebedor em `config.php`:
@@ -73,6 +74,7 @@ Use as migrações em ordem porque elas ampliam os campos e tabelas existentes s
 6. O sistema mostra o troco automaticamente.
 7. Se o pagamento for Pix, o QR Code aparece ao final da venda.
 8. Finalize a venda e confirme o registro no caixa.
+9. A notinha do cliente é impressa automaticamente em modelo térmico de 72mm.
 
 ## Pendências e limitações
 - O sistema é local e não substitui contabilidade fiscal/tributária oficial.
