@@ -4,6 +4,48 @@ require __DIR__ . '/config.php';
 require __DIR__ . '/auth.php';
 requireRole(['admin','vendedor']);
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+$receiptDefaults = [
+    'empresa_nome' => 'TÔ EM CASA',
+    'slogan' => 'ADEGA & CONVENIÊNCIA',
+    'cnpj' => '00.000.000/0001-00',
+    'endereco' => 'Rua da Loja, 123 - Centro',
+    'telefone' => 'Tel/WhatsApp: (11) 99999-9999',
+];
+$receiptConfig = $_SESSION['receipt_config'] ?? $receiptDefaults;
+foreach ($receiptDefaults as $key => $value) {
+    if (!isset($receiptConfig[$key])) {
+        $receiptConfig[$key] = $value;
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_receipt_config') {
+    if (!isset($_POST['csrf']) || $_POST['csrf'] !== ($_SESSION['csrf_token'] ?? '')) {
+        $error = 'Sessão inválida ao atualizar os dados da nota.';
+    } else {
+        $updatedConfig = [
+            'empresa_nome' => trim((string)($_POST['receipt_empresa_nome'] ?? $receiptConfig['empresa_nome'])),
+            'slogan' => trim((string)($_POST['receipt_slogan'] ?? $receiptConfig['slogan'])),
+            'cnpj' => trim((string)($_POST['receipt_cnpj'] ?? $receiptConfig['cnpj'])),
+            'endereco' => trim((string)($_POST['receipt_endereco'] ?? $receiptConfig['endereco'])),
+            'telefone' => trim((string)($_POST['receipt_telefone'] ?? $receiptConfig['telefone'])),
+        ];
+
+        foreach ($receiptDefaults as $key => $fallback) {
+            if ($updatedConfig[$key] === '') {
+                $updatedConfig[$key] = $fallback;
+            }
+        }
+
+        $_SESSION['receipt_config'] = $updatedConfig;
+        $receiptConfig = $updatedConfig;
+        $success = 'Dados da empresa atualizados com sucesso.';
+    }
+}
+
 $user = currentUser();
 function h(string $s): string { return htmlspecialchars($s, ENT_QUOTES, 'UTF-8'); }
 function money(float $v): string { return 'R$ ' . number_format($v, 2, ',', '.'); }
@@ -241,9 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
     }
 }
 
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
+$autoOpenReceiptModal = isset($_GET['open_receipt']) && $_GET['open_receipt'] == '1';
 ?>
 <!doctype html>
 <html lang="pt-br">
@@ -302,11 +342,11 @@ if (empty($_SESSION['csrf_token'])) {
 
             <div class="receipt-ticket" id="receipt-ticket">
                 <div class="center">
-                    <div class="empresa-nome">TÔ EM CASA</div>
-                    <div>ADEGA &amp; CONVENIÊNCIA</div>
-                    <div>CNPJ: 00.000.000/0001-00</div>
-                    <div>Rua da Loja, 123 - Centro</div>
-                    <div>Tel/WhatsApp: (11) 99999-9999</div>
+                    <div class="empresa-nome"><?= h((string)($receiptConfig['empresa_nome'] ?? 'TÔ EM CASA')) ?></div>
+                    <div><?= h((string)($receiptConfig['slogan'] ?? 'ADEGA & CONVENIÊNCIA')) ?></div>
+                    <div>CNPJ: <?= h((string)($receiptConfig['cnpj'] ?? '00.000.000/0001-00')) ?></div>
+                    <div><?= h((string)($receiptConfig['endereco'] ?? 'Rua da Loja, 123 - Centro')) ?></div>
+                    <div><?= h((string)($receiptConfig['telefone'] ?? 'Tel/WhatsApp: (11) 99999-9999')) ?></div>
                 </div>
 
                 <div class="line"></div>
@@ -875,6 +915,18 @@ function printReceiptOnly() {
     printWindow.print();
     printWindow.close();
   }, 350);
+}
+
+const openReceiptModalOnLoad = <?= $autoOpenReceiptModal ? 'true' : 'false' ?>;
+if (openReceiptModalOnLoad) {
+    window.addEventListener('load', function () {
+        setTimeout(function () {
+            const modal = document.getElementById('receipt-config-modal');
+            if (modal) {
+                modal.classList.add('open');
+            }
+        }, 120);
+    });
 }
 </script>
 </body>
