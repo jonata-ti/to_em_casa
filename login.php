@@ -25,6 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_id'] = (int)$user['id'];
             $_SESSION['user_username'] = (string)$user['username'];
             $_SESSION['user_role'] = (string)$user['role'];
+            unset($_SESSION['receipt_config']);
+            $_SESSION['receipt_config'] = loadReceiptConfig($pdo);
             logAudit($pdo, 'auth', 'users', (int)$user['id'], 'login', 'Usuário autenticado com sucesso', (int)$user['id']);
             header('Location: ' . redirectAfterLogin());
             exit;

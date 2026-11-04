@@ -15,7 +15,11 @@ $receiptDefaults = [
     'endereco' => 'Rua da Loja, 123 - Centro',
     'telefone' => 'Tel/WhatsApp: (11) 99999-9999',
 ];
-$receiptConfig = $_SESSION['receipt_config'] ?? $receiptDefaults;
+
+if (empty($_SESSION['receipt_config'])) {
+    $_SESSION['receipt_config'] = loadReceiptConfig($pdo);
+}
+$receiptConfig = $_SESSION['receipt_config'];
 foreach ($receiptDefaults as $key => $value) {
     if (!isset($receiptConfig[$key])) {
         $receiptConfig[$key] = $value;
@@ -40,8 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
             }
         }
 
-        $_SESSION['receipt_config'] = $updatedConfig;
-        $receiptConfig = $updatedConfig;
+        $receiptConfig = saveReceiptConfig($pdo, $updatedConfig);
+        $_SESSION['receipt_config'] = $receiptConfig;
         $success = 'Dados da empresa atualizados com sucesso.';
     }
 }
@@ -622,10 +626,6 @@ function total() {
 
 function updatePaymentSummary() {
   const rows = [...document.querySelectorAll('input[name="amount[]"]')];
-  const received = rows.reduce((sum, field) => sum + Number(normalizeInputNumber(field)), 0);
-  paymentSummaryEl.textContent = money(received);
-
-  const totalValue = total();
   const remaining = Math.max(0, Number((totalValue - received).toFixed(2)));
   remainingEl.textContent = money(remaining);
 

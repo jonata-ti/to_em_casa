@@ -15,6 +15,7 @@ if ($user) {
 }
 
 $_SESSION = [];
+unset($_SESSION['receipt_config']);
 if (ini_get('session.use_cookies')) {
     $params = session_get_cookie_params();
     setcookie(

@@ -43,6 +43,59 @@ function columnExists(PDO $pdo, string $tableName, string $columnName): bool
     }
 }
 
+function loadReceiptConfig(PDO $pdo): array
+{
+    $defaults = [
+        'empresa_nome' => 'TÔ EM CASA',
+        'slogan' => 'ADEGA & CONVENIÊNCIA',
+        'cnpj' => '00.000.000/0001-00',
+        'endereco' => 'Rua da Loja, 123 - Centro',
+        'telefone' => 'Tel/WhatsApp: (11) 99999-9999',
+    ];
+
+    $stmt = $pdo->query('SELECT setting_key, setting_value FROM store_settings');
+    $stored = $stmt ? $stmt->fetchAll() : [];
+
+    foreach ($stored as $row) {
+        $key = (string)($row['setting_key'] ?? '');
+        if ($key !== '' && isset($row['setting_value'])) {
+            $defaults[$key] = (string)$row['setting_value'];
+        }
+    }
+
+    return $defaults;
+}
+
+function saveReceiptConfig(PDO $pdo, array $config): array
+{
+    $defaults = [
+        'empresa_nome' => 'TÔ EM CASA',
+        'slogan' => 'ADEGA & CONVENIÊNCIA',
+        'cnpj' => '00.000.000/0001-00',
+        'endereco' => 'Rua da Loja, 123 - Centro',
+        'telefone' => 'Tel/WhatsApp: (11) 99999-9999',
+    ];
+
+    $merged = $defaults;
+    foreach ($config as $key => $value) {
+        if (array_key_exists($key, $defaults)) {
+            $merged[$key] = trim((string)$value) !== '' ? trim((string)$value) : $defaults[$key];
+        }
+    }
+
+    $insert = $pdo->prepare('INSERT INTO store_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)');
+    foreach ($merged as $key => $value) {
+        if (!array_key_exists($key, $defaults)) {
+            continue;
+        }
+        $insert->execute([$key, (string)$value]);
+    }
+
+    $_SESSION['receipt_config'] = $merged;
+
+    return $merged;
+}
+
 function ensureRequiredSchema(PDO $pdo): void
 {
     $createStatements = [
@@ -59,7 +112,16 @@ function ensureRequiredSchema(PDO $pdo): void
         "CREATE TABLE IF NOT EXISTS financial_entries (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, entry_type ENUM('income','expense') NOT NULL, category_id BIGINT UNSIGNED NULL, description VARCHAR(180) NOT NULL, amount DECIMAL(12,2) NOT NULL DEFAULT 0, entry_date DATE NOT NULL, due_date DATE NULL, status ENUM('pending','paid','received','overdue','cancelled') NOT NULL DEFAULT 'pending', payment_method VARCHAR(40) NOT NULL DEFAULT 'outro', reference_key VARCHAR(120) NULL, related_entity_type VARCHAR(40) NULL, related_entity_id BIGINT UNSIGNED NULL, notes VARCHAR(255) NULL, user_id BIGINT UNSIGNED NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, cancelled_at TIMESTAMP NULL, cancel_reason VARCHAR(255) NULL) ENGINE=InnoDB",
         "CREATE TABLE IF NOT EXISTS audit_logs (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, event_type VARCHAR(80) NOT NULL, entity_type VARCHAR(80) NOT NULL, entity_id BIGINT UNSIGNED NULL, action VARCHAR(80) NOT NULL, details TEXT NULL, user_id BIGINT UNSIGNED NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
         "CREATE TABLE IF NOT EXISTS payment_tickets (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, sale_id BIGINT UNSIGNED NOT NULL, ticket_number VARCHAR(64) NOT NULL, printed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uniq_ticket_number (ticket_number)) ENGINE=InnoDB",
+        "CREATE TABLE IF NOT EXISTS store_settings (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, setting_key VARCHAR(100) NOT NULL UNIQUE, setting_value TEXT NULL, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB",
     ];
+
+    foreach ($createStatements as $sql) {
+        try {
+            $pdo->exec($sql);
+        } catch (Throwable $e) {
+            // ignora falha de criação para manter a aplicação funcional em ambientes já existentes.
+        }
+    }
 
     $integerColumns = [
         ['products', 'stock_qty', "ALTER TABLE products MODIFY COLUMN stock_qty INT NOT NULL DEFAULT 0"],

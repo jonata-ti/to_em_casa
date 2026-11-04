@@ -14,12 +14,13 @@ $receiptDefaults = [
     'endereco' => 'Rua da Loja, 123 - Centro',
     'telefone' => 'Tel/WhatsApp: (11) 99999-9999',
 ];
-$headerReceiptConfig = $_SESSION['receipt_config'] ?? $receiptDefaults;
+$headerReceiptConfig = loadReceiptConfig($pdo) ?? $receiptDefaults;
 foreach ($receiptDefaults as $key => $value) {
     if (!isset($headerReceiptConfig[$key])) {
         $headerReceiptConfig[$key] = $value;
     }
 }
+$_SESSION['receipt_config'] = $headerReceiptConfig;
 
 $headerMenu = [
     ['label' => 'Início', 'url' => 'index.php', 'icon' => '🏠', 'page' => 'index.php', 'roles' => ['admin', 'vendedor']],
