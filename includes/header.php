@@ -1,15 +1,22 @@
 <?php
 $currentPage = basename($_SERVER['PHP_SELF'] ?? 'index.php');
 $user = currentUser();
+
+$role = $user['role'] ?? 'vendedor';
 $headerMenu = [
-    ['label' => 'Início', 'url' => 'index.php', 'icon' => '🏠', 'page' => 'index.php'],
-    ['label' => 'Produtos', 'url' => 'products.php?open=1', 'icon' => '📦', 'page' => 'products.php'],
-    ['label' => 'PDV', 'url' => 'pos.php', 'icon' => '🧾', 'page' => 'pos.php'],
-    ['label' => 'Caixa', 'url' => 'cash_register.php', 'icon' => '💰', 'page' => 'cash_register.php'],
-    ['label' => 'Financeiro', 'url' => 'financial.php', 'icon' => '📊', 'page' => 'financial.php'],
-    ['label' => 'Relatórios', 'url' => 'reports.php', 'icon' => '📈', 'page' => 'reports.php'],
-    ['label' => 'Auditoria', 'url' => 'audit.php', 'icon' => '🛡️', 'page' => 'audit.php'],
+    ['label' => 'Início', 'url' => 'index.php', 'icon' => '🏠', 'page' => 'index.php', 'roles' => ['admin', 'vendedor']],
+    ['label' => 'Produtos', 'url' => 'products.php?open=1', 'icon' => '📦', 'page' => 'products.php', 'roles' => ['admin']],
+    ['label' => 'PDV', 'url' => 'pos.php', 'icon' => '🧾', 'page' => 'pos.php', 'roles' => ['admin', 'vendedor']],
+    ['label' => 'Usuários', 'url' => 'users.php', 'icon' => '👤', 'page' => 'users.php', 'roles' => ['admin']],
+    ['label' => 'Caixa', 'url' => 'cash_register.php', 'icon' => '💰', 'page' => 'cash_register.php', 'roles' => ['admin', 'vendedor']],
+    ['label' => 'Financeiro', 'url' => 'financial.php', 'icon' => '📊', 'page' => 'financial.php', 'roles' => ['admin']],
+    ['label' => 'Relatórios', 'url' => 'reports.php', 'icon' => '📈', 'page' => 'reports.php', 'roles' => ['admin']],
+    ['label' => 'Auditoria', 'url' => 'audit.php', 'icon' => '🛡️', 'page' => 'audit.php', 'roles' => ['admin']],
 ];
+
+$headerMenu = array_values(array_filter($headerMenu, function (array $item) use ($role): bool {
+    return in_array($role, $item['roles'], true);
+}));
 
 $userDisplay = $user ? h($user['username']) . ' · ' . h($user['role']) : 'Visitante';
 $userInitials = $user ? strtoupper(substr((string)$user['username'], 0, 2)) : 'VS';
