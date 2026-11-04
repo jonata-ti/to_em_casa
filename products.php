@@ -182,20 +182,7 @@ foreach ($products as $p) {
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-    <div class="brand">TÔ EM CASA <small>ADEGA & CONVENIÊNCIA</small></div>
-    <nav class="main-menu">
-        <a href="index.php">Início</a>
-        <a class="active" href="products.php?open=1">Produtos</a>
-        <a href="pos.php">PDV</a>
-        <a href="cash_register.php">Caixa</a>
-        <a href="financial.php">Financeiro</a>
-        <a href="reports.php">Relatórios</a>
-        <a href="audit.php">Auditoria</a>
-        <span class="user-badge"><?= h($user['username']) ?> · <?= h($user['role']) ?></span>
-        <a href="logout.php">Sair</a>
-    </nav>
-</header>
+<?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h1>Cadastro de produtos</h1>
     <p class="muted">Cadastre, pesquise, edite e acompanhe margens e alertas do estoque.</p>
@@ -305,60 +292,36 @@ foreach ($products as $p) {
         </div>
     </section>
 </main>
-<script src="money-mask.js"></script>
 <script>
-(function () {
-  function attachProductCurrencyFields() {
-    if (window.moneyMask) {
-      window.moneyMask.attachMoneyMask('input[name="cost_price"], input[name="sale_price"]');
-    }
+    const productModal = document.getElementById('product-modal');
+    const openProductModalButton = document.getElementById('open-product-modal');
+    const modalCloseButtons = document.querySelectorAll('[data-close="modal"]');
 
-    document.querySelectorAll('form').forEach((form) => {
-      form.addEventListener('submit', () => {
-        ['cost_price', 'sale_price'].forEach((fieldName) => {
-          const field = form.querySelector('input[name="' + fieldName + '"]');
-          if (field) {
-            field.value = window.moneyMask ? window.moneyMask.normalizeMoneyValue(field.value || '0') : field.value;
-          }
+    if (productModal) {
+        if (openProductModalButton) {
+            openProductModalButton.addEventListener('click', () => {
+                productModal.classList.add('open');
+            });
+        }
+
+        modalCloseButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                productModal.classList.remove('open');
+            });
         });
-      });
-    });
-  }
 
-  document.addEventListener('DOMContentLoaded', attachProductCurrencyFields);
-})();
-</script>
-<script>
-(function () {
-  const modal = document.getElementById('product-modal');
-  const openButton = document.getElementById('open-product-modal');
+        productModal.addEventListener('click', (event) => {
+            if (event.target === productModal || event.target.classList.contains('modal-backdrop')) {
+                productModal.classList.remove('open');
+            }
+        });
 
-  if (modal && openButton) {
-    openButton.addEventListener('click', () => {
-      modal.classList.add('open');
-    });
-  }
-
-  if (modal) {
-    modal.querySelectorAll('[data-close="modal"]').forEach((trigger) => {
-      trigger.addEventListener('click', () => {
-        modal.classList.remove('open');
-      });
-    });
-
-    modal.addEventListener('click', (event) => {
-      if (event.target === modal) {
-        modal.classList.remove('open');
-      }
-    });
-
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && modal.classList.contains('open')) {
-        modal.classList.remove('open');
-      }
-    });
-  }
-})();
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && productModal.classList.contains('open')) {
+                productModal.classList.remove('open');
+            }
+        });
+    }
 </script>
 </body>
 </html>

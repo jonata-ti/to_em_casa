@@ -56,20 +56,7 @@ $users = $pdo->query('SELECT id, username FROM users WHERE active = 1 ORDER BY u
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-    <div class="brand">TÔ EM CASA <small>ADEGA & CONVENIÊNCIA</small></div>
-    <nav class="main-menu">
-        <a href="index.php">Início</a>
-        <a href="products.php?open=1">Produtos</a>
-        <a href="pos.php">PDV</a>
-        <a href="cash_register.php">Caixa</a>
-        <a href="financial.php">Financeiro</a>
-        <a href="reports.php">Relatórios</a>
-        <a href="audit.php">Auditoria</a>
-        <span class="user-badge"><?= h($user['username']) ?> · <?= h($user['role']) ?></span>
-        <a href="logout.php">Sair</a>
-    </nav>
-</header>
+<?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h1>Histórico de movimentações</h1>
     <p class="muted">Filtros por produto, período, tipo e responsável.</p>
