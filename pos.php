@@ -335,7 +335,7 @@ $autoOpenReceiptModal = isset($_GET['open_receipt']) && $_GET['open_receipt'] ==
                 }, 250);
             });
         </script>
-        <section class="card receipt-card">
+        <section class="card receipt-card receipt-hidden" aria-hidden="true" style="display:none !important;">
             <div class="receipt-header no-print">
                 <div>
                     <div class="eyebrow">Comprovante</div>

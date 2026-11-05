@@ -103,6 +103,7 @@ Arquivos principais:
 - O comprovante é gerado no módulo `pos.php` e renderizado em um container dedicado com a classe `.receipt-ticket`.
 - O conteúdo inclui nome da loja, pedido, data, vendedor, itens, subtotal, desconto, total, valores pagos e troco.
 - A impressão é acionada automaticamente ao finalizar a venda, sem abrir a tela completa do PDV no navegador.
+- O sistema não exibe a notinha para o cliente na tela; ele apenas abre a janela de impressão para a impressora térmica POS-80.
 - O código cria uma janela temporária com somente o ticket para evitar imprimir toda a interface do sistema.
 - O layout foi ajustado para 72mm de largura e usa fonte `Arial`, o que melhora a compatibilidade com impressoras térmicas POS-80.
 - A visualização em tela também mantém o ticket em formato compacto e legível para o operador.
